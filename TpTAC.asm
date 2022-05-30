@@ -68,10 +68,12 @@ LE_TECLA	endp
 ;########################################################################
 
 ;########################################################################
-; Assinala caracter no ecran	
+; Assinala caracter na tabela no ecran	
 
 assinala_P	PROC
 
+		mov POSx, 2
+		mov POSy, 1
 
 CICLO:	
 		; goto_xy	POSxa,POSya	; Vai para a posição anterior do cursor
@@ -187,18 +189,117 @@ assinala_P	endp
 
 
 
+;########################################################################
+; Assinala caracter no menu no ecran	
 
+assinala_Menu	PROC
+
+		mov POSx, 29
+		mov POSy, 3
+
+CICLO:	
+		; goto_xy	POSxa,POSya	; Vai para a posição anterior do cursor
+		; mov		ah, 02h
+		; mov		dl, Car	; Repoe Caracter guardado 
+		; int		21H		
+		
+		
+		goto_xy	POSx,POSy	; Vai para nova posição
+		mov 	ah, 08h
+		mov		bh,0		; numero da página
+		int		10h			; Read Character and Attribute at Cursor Position
+		mov		Car, al		; Guarda o Caracter que está na posição do Cursor
+		mov		Cor, ah		; Guarda a cor que está na posição do Cursor
+		
+		;goto_xy	78,0		; Mostra o caractereque estava na posição do AVATAR
+		;mov		ah, 02h		; IMPRIME caracter da posição no canto
+		;mov		dl, Car	
+		;int		21H			;Display Output
+	
+		;goto_xy	POSx,POSy	; Vai para posição do cursor
+IMPRIME:	
+		; mov		ah, 02h
+		; mov		dl, 190		; Coloca AVATAR
+		; int		21H	
+		; goto_xy	POSx,POSy	; Vai para posição do cursor
+		
+		; mov		al, POSx	; Guarda a posição do cursor	
+		; mov		POSxa, al
+		; mov		al, POSy	; Guarda a posição do cursor
+		; mov 	POSya, al
+		
+LER_SETA:	
+		call 	LE_TECLA
+		cmp		ah, 1
+		je		ESTEND
+		
+		CMP 	AL, 27	; ESCAPE
+		JE		FIM
+		CMP		AL, 13  ; ENTER
+		je		ASSINALA
+		jmp		LER_SETA
+		
+ESTEND:	cmp 	al,48h
+		jne		BAIXO
+		dec		POSy		;cima
+		dec		POSy
+		dec		POSy
+		dec		POSy
+		dec		POSy
+		cmp 	POSy, -2
+		jbe		RETURNUP
+		jmp		CICLO
+
+RETURNUP: 						;Não sai por cima do tabuleiro
+		mov POSy, 3
+		jmp CICLO
+
+BAIXO:	cmp		al,50h
+		jne		LER_SETA 		;É só para andar para cima e para baixo
+		inc 	POSy		;Baixo
+		inc 	POSy
+		inc 	POSy
+		inc 	POSy
+		inc 	POSy
+		cmp 	POSy, 18
+		jae		RETURNDOWN
+		jmp		CICLO
+
+RETURNDOWN: 						;Não sai por cima do tabuleiro
+		mov POSy, 13
+		jmp CICLO
+
+
+ASSINALA:
+		cmp POSy, 3
+		je 		fim
+		cmp POSy, 8
+		je		SAIR
+		cmp POSy, 13
+		je		SAIR
+		jmp		CICLO
+
+SAIR:
+		call 	apaga_ecran
+		goto_xy	0,0
+		mov     ah,4ch
+        int     21h
+
+fim:	
+		RET
+assinala_Menu	endp
+;########################################################################
 
 
 
 ;########################################################################
-;ROTINA PARA IMPRIMIR FICHEIRO NO ECRAN
+;ROTINA PARA IMPRIMIR Tabela NO ECRAN
 
 imp_Ficheiro	proc
 
 		
 
-;abre ficheiro
+;abre tabela
         mov     ah,3dh
         mov     al,0
         lea     dx,FTable
@@ -248,13 +349,13 @@ imp_Ficheiro	endp
 
 
 ;########################################################################
-;ROTINA PARA IMPRIMIR FICHEIRO NO ECRAN
+;ROTINA PARA IMPRIMIR menu NO ECRAN
 
 imp_Menu	proc
 
 		
 
-;abre ficheiro
+;abre menu
         mov     ah,3dh
         mov     al,0
         lea     dx,FMenu
@@ -315,10 +416,14 @@ Main    Proc
 		mov		es,ax
 		call 	apaga_ecran
 		goto_xy	0,0
+		call	imp_Menu
+		call	assinala_Menu
+		call 	apaga_ecran
+		goto_xy	0,0
 		call	imp_Ficheiro
-		;call	imp_Menu
 		call	assinala_P
-		goto_xy	0,22
+		call 	apaga_ecran
+		goto_xy	0,0
 
 		
         mov     ah,4ch
