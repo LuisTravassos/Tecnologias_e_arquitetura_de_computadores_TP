@@ -55,8 +55,8 @@ apaga_ecran	proc
 		xor		bx,bx
 		mov		cx,25*80
 		
-apaga:	mov	byte ptr es:[bx],' '
-		mov		byte ptr es:[bx+1],11   ;AQUI COLOCAS A COR!!!!!!!!
+apaga:	mov	byte ptr es:[bx], ' '
+		mov		byte ptr es:[bx+1],7   ;AQUI COLOCAS A COR DAS LETRAS!!!!!!!!
 		inc		bx
 		inc 	bx
 		loop	apaga
@@ -65,7 +65,7 @@ apaga_ecran	endp
 
 
 ;########################################################################
-;ROTINA PARA MUDAR COR (NAO FUNCIONA)
+;ROTINA PARA MUDAR COR
 
 muda_cor	proc
 		xor		bx,bx
@@ -75,16 +75,13 @@ muda_cor	proc
 muda:	
 		mov al, es:[bx]
 		cmp al,'#'
-		je cardinal
-		mov		byte ptr es:[bx+1],10   ;AQUI COLOCAS A COR!!!!!!!!
-		inc		bx
-		inc 	bx
-		loop	muda
-		
-cardinal:
-		mov		byte ptr es:[bx+1],11   ;AQUI COLOCAS A COR!!!!!!!!
-		jmp	muda
-
+		jne next
+		mov		byte ptr es:[bx+1],11   ;AQUI COLOCAS A COR DOS CARDINAIS!!!!!!!!
+next:	
+		inc bx
+		inc bx
+		loop 	muda
+fim:
 		ret
 		muda_cor	endp
 ;########################################################################
@@ -379,7 +376,6 @@ fecha_ficheiro:
         lea     dx,Erro_Close
         Int     21h
 sai:
-
 		ret
 imp_Ficheiro	endp
 
@@ -453,10 +449,12 @@ Main    Proc
 		call 	apaga_ecran
 		goto_xy	0,0
 		call	imp_Menu
+		call 	muda_cor
 		call	assinala_Menu
 		call 	apaga_ecran
 		goto_xy	0,0
 		call	imp_Ficheiro
+		call 	muda_cor
 		call	assinala_P
 		call 	apaga_ecran
 		goto_xy	0,0
