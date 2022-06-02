@@ -56,7 +56,7 @@ apaga_ecran	proc
 		mov		cx,25*80
 		
 apaga:	mov	byte ptr es:[bx], ' '
-		mov		byte ptr es:[bx+1],7   ;AQUI COLOCAS A COR DAS LETRAS!!!!!!!!
+		mov		byte ptr es:[bx+1],15   ;AQUI COLOCAS A COR DAS LETRAS!!!!!!!!
 		inc		bx
 		inc 	bx
 		loop	apaga
@@ -76,7 +76,7 @@ muda:
 		mov al, es:[bx]
 		cmp al,'#'
 		jne next
-		mov		byte ptr es:[bx+1],11   ;AQUI COLOCAS A COR DOS CARDINAIS!!!!!!!!
+		mov		byte ptr es:[bx+1],3   ;AQUI COLOCAS A COR DOS CARDINAIS!!!!!!!!
 next:	
 		inc bx
 		inc bx
@@ -438,6 +438,7 @@ imp_Menu	endp
 
 ;########################################################################
 
+
 Main    Proc
 
         mov     ax,dseg
@@ -466,3 +467,6 @@ Main    endp
 cseg	ends
 end     Main           
 
+;para ESC FICHEIRO -> MENU não podemos entrar infinitamente nas funções
+;main -> função -> main (sempre)
+;main -> função -> função -> main (errado)
