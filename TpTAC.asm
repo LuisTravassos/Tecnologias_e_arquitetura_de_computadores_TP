@@ -3,6 +3,20 @@
 .stack 2048h
 
 dseg    segment para public 'data'
+		;Criar ficheiro com palavras
+		;##########################################################################
+		fname	db	'pergunta.txt',0
+		fhandle dw	0
+		buffer	db	'1 5 6 7 8 9 1 5 7 8 9 2 3 7 8 15 16 18 19 20 3',13,10
+				db 	'+ - / * * + - - + * / * + - - + * / + - - + * ',13,10
+				db	'10 12 14 7 9 11 13 5 10 15 7 8 9 10 13 5 10 11',13,10 
+				db 	'/ * + - - + * / + - / * * + - - + * * + - - + ',13,10
+				db	'3 45 23 11 4 7 14 18 31 27 19 9 6 47 19 9 6 51',13,10
+				db	'______________________________________________',13,10
+		msgErrorCreate	db	"Ocorreu um erro na criacao do ficheiro!$"
+		msgErrorWrite	db	"Ocorreu um erro na escrita para ficheiro!$"
+		msgErrorClose	db	"Ocorreu um erro no fecho do ficheiro!$"
+		;##########################################################################
         Erro_Open       db      'Erro ao tentar abrir o ficheiro$'
         Erro_Ler_Msg    db      'Erro ao tentar ler do ficheiro$'
         Erro_Close      db      'Erro ao tentar fechar o ficheiro$'
@@ -50,6 +64,29 @@ apaga:	mov	byte ptr es:[bx],' '
 apaga_ecran	endp
 
 
+;########################################################################
+;ROTINA PARA MUDAR COR (NAO FUNCIONA)
+
+muda_cor	proc
+		xor		bx,bx
+		mov		cx,25*80
+		
+
+muda:	
+		mov al, es:[bx]
+		cmp al,'#'
+		je cardinal
+		mov		byte ptr es:[bx+1],10   ;AQUI COLOCAS A COR!!!!!!!!
+		inc		bx
+		inc 	bx
+		loop	muda
+		
+cardinal:
+		mov		byte ptr es:[bx+1],11   ;AQUI COLOCAS A COR!!!!!!!!
+		jmp	muda
+
+		ret
+		muda_cor	endp
 ;########################################################################
 ; LE UMA TECLA	
 
@@ -193,7 +230,6 @@ assinala_P	endp
 ; Assinala caracter no menu no ecran	
 
 assinala_Menu	PROC
-
 		mov POSx, 29
 		mov POSy, 3
 
