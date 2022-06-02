@@ -26,6 +26,10 @@ dseg    segment para public 'data'
 		FMenu         	db      'MENU.TXT',0  ; Nome do ficheiro a ir buscar / MENU.TXT
         HandleMenu      dw      0
         car_Menu        db      ?
+
+		ultimo_num_aleat dw 0 ;ultimo numero aleatorio
+
+		str_num db 5 dup(?),'$' 
 		
 		Car			db	32	; Guarda um caracter do Ecran 
 		Cor			db	11	; Guarda os atributos de cor do caracter / BIOS color attributes
@@ -65,13 +69,47 @@ apaga_ecran	endp
 
 
 ;########################################################################
+;ROTINA CRIA ALEATÓRIO
+CalcAleat proc near
+	sub	sp,2
+	push	bp
+	mov	bp,sp
+	push	ax
+	push	cx
+	push	dx	
+	mov	ax,[bp+4]
+	mov	[bp+2],ax
+
+	mov	ah,00h
+	int	1ah
+
+	add	dx,ultimo_num_aleat
+	add	cx,dx	
+	mov	ax,65521
+	push	dx
+	mul	cx
+	pop	dx
+	xchg	dl,dh
+	add	dx,32749
+	add	dx,ax
+
+	mov	ultimo_num_aleat,dx
+
+	mov	[BP+4],dx
+
+	pop	dx
+	pop	cx
+	pop	ax
+	pop	bp
+	ret
+CalcAleat endp
+;#############################################################################
 ;ROTINA PARA MUDAR COR
 
 muda_cor	proc
 		xor		bx,bx
 		mov		cx,25*80
 		
-
 muda:	
 		mov al, es:[bx]
 		cmp al,'#'
@@ -83,7 +121,9 @@ next:
 		loop 	muda
 fim:
 		ret
-		muda_cor	endp
+		
+muda_cor	endp
+
 ;########################################################################
 ; LE UMA TECLA	
 
