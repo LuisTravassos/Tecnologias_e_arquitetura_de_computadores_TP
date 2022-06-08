@@ -3,19 +3,8 @@
 .stack 2048h
 
 dseg    segment para public 'data'
-		;Criar ficheiro com palavras
-		;##########################################################################
-		fname	db	'pergunta.txt',0
-		fhandle dw	0
-		buffer	db	'1 5 6 7 8 9 1 5 7 8 9 2 3 7 8 15 16 18 19 20 3',13,10
-				db 	'+ - / * * + - - + * / * + - - + * / + - - + * ',13,10
-				db	'10 12 14 7 9 11 13 5 10 15 7 8 9 10 13 5 10 11',13,10 
-				db 	'/ * + - - + * / + - / * * + - - + * * + - - + ',13,10
-				db	'3 45 23 11 4 7 14 18 31 27 19 9 6 47 19 9 6 51',13,10
-				db	'______________________________________________',13,10
-		msgErrorCreate	db	"Ocorreu um erro na criacao do ficheiro!$"
-		msgErrorWrite	db	"Ocorreu um erro na escrita para ficheiro!$"
-		msgErrorClose	db	"Ocorreu um erro no fecho do ficheiro!$"
+
+		;Ficheiros
 		;##########################################################################
         Erro_Open       db      'Erro ao tentar abrir o ficheiro$'
         Erro_Ler_Msg    db      'Erro ao tentar ler do ficheiro$'
@@ -27,50 +16,26 @@ dseg    segment para public 'data'
         HandleMenu      dw      0
         car_Menu        db      ?
 
-		ultimo_num_aleat dw 0 ;ultimo numero aleatorio
+		;Variaveis suporte
+		;##########################################################################
 
-		str_num db 5 dup(?),'$' 
-		
+		ultimo_num_aleat dw 0 		;ultimo numero aleatorio / numero aleatório
 		Car			db	32	; Guarda um caracter do Ecran 
 		Cor			db	11	; Guarda os atributos de cor do caracter / BIOS color attributes
 		POSy		db	1	; a linha pode ir de [1 .. 25]
-		POSx		db	2	; POSx pode ir [1..80]	
+		POSx		db	2	; POSx pode ir [1..80]
+		Counter		db	0	; Serve para contar repetições, colocar a zero no inicio de uso	
 dseg    ends
 
 
 cseg    segment para public 'code'
 		assume  cs:cseg, ds:dseg
 
-
 ;########################################################################
-;ROTINA PARA COLOCAR CURSOR NA POSIÇÂO PRETENDIDA
-goto_xy	macro		POSx,POSy
-		mov		ah,02h
-		mov		bh,0		; numero da página
-		mov		dl,POSx
-		mov		dh,POSy
-		int		10h   ; Set Cursor Position
-endm
+;ROTINA PARA CRIAR NUMERO ALEATORIO
 
-;########################################################################
-;ROTINA PARA APAGAR ECRAN
-
-apaga_ecran	proc
-		xor		bx,bx
-		mov		cx,25*80
-		
-apaga:	mov	byte ptr es:[bx], ' '
-		mov		byte ptr es:[bx+1],15   ;AQUI COLOCAS A COR DAS LETRAS!!!!!!!!
-		inc		bx
-		inc 	bx
-		loop	apaga
-		ret
-apaga_ecran	endp
-
-
-;########################################################################
-;ROTINA CRIA ALEATÓRIO
 CalcAleat proc near
+
 	sub	sp,2
 	push	bp
 	mov	bp,sp
@@ -103,6 +68,34 @@ CalcAleat proc near
 	pop	bp
 	ret
 CalcAleat endp
+
+;########################################################################
+;ROTINA PARA COLOCAR CURSOR NA POSIÇÂO PRETENDIDA
+
+goto_xy	macro		POSx,POSy
+		mov		ah,02h
+		mov		bh,0		; numero da página
+		mov		dl,POSx
+		mov		dh,POSy
+		int		10h   ; Set Cursor Position
+endm
+
+;########################################################################
+;ROTINA PARA APAGAR ECRAN
+
+apaga_ecran	proc
+		xor		bx,bx
+		mov		cx,25*80
+		
+apaga:	mov	byte ptr es:[bx], ' '
+		mov		byte ptr es:[bx+1],15   ;AQUI COLOCAS A COR DAS LETRAS!!!!!!!!
+		inc		bx
+		inc 	bx
+		loop	apaga
+		ret
+apaga_ecran	endp
+
+
 ;#############################################################################
 ;ROTINA PARA MUDAR COR
 
@@ -363,6 +356,53 @@ fim:
 assinala_Menu	endp
 ;########################################################################
 
+;########################################################################
+;ROTINA PARA IMPRIMIR letras random NO ECRAN
+
+imp_Letras	proc
+
+		mov POSx, 2
+		mov POSy, 1
+		mov Counter, 0
+
+ler_ciclo:
+		call	CalcAleat
+		pop	ax ; vai buscar 'a pilha o numero aleatorio
+
+		goto_xy	POSx,POSy
+        
+		mov		dl, al
+		cmp 	dl, 41h
+		jb		ler_ciclo
+		cmp 	dl, 5Ah
+		ja		ler_ciclo
+		mov     ah,02h
+		int		21h  ;Display Output
+		inc 	Counter
+		cmp 	Counter, 12
+		je		IncPy
+		jmp		IncPx
+
+IncPx:
+		inc 	POSx
+		inc 	Posx
+		jmp		ler_ciclo
+
+IncPy:
+		cmp 	PosY, 11
+		je 		sai
+		mov 	Counter, 0
+		mov 	Posx, 2
+		inc 	POSY
+		jmp		ler_ciclo
+
+Random:
+		call 	CalcAleat
+		jmp		ler_ciclo
+
+sai:
+		ret
+imp_Letras	endp
 
 
 ;########################################################################
@@ -495,6 +535,7 @@ Main    Proc
 		call 	apaga_ecran
 		goto_xy	0,0
 		call	imp_Ficheiro
+		call	imp_Letras
 		call 	muda_cor
 		call	assinala_P
 		call 	apaga_ecran
