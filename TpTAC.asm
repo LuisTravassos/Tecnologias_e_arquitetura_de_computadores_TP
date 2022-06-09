@@ -15,6 +15,9 @@ dseg    segment para public 'data'
 		FMenu         	db      'MENU.TXT',0  ; Nome do ficheiro a ir buscar / MENU.TXT
         HandleMenu      dw      0
         car_Menu        db      ?
+		FWORDS         	db      'WORDS.TXT',0  ; Nome do ficheiro a ir buscar / Words.TXT
+		HandleWord      dw      0
+        car_Word        db      ?
 
 		;Variaveis suporte
 		;##########################################################################
@@ -25,6 +28,7 @@ dseg    segment para public 'data'
 		POSy		db	1	; a linha pode ir de [1 .. 25]
 		POSx		db	2	; POSx pode ir [1..80]
 		Counter		db	0	; Serve para contar repetições, colocar a zero no inicio de uso	
+		Helper		db	?	; Serve para ajudar a transportar valores, colocar valor nele antes de usar
 dseg    ends
 
 
@@ -357,6 +361,214 @@ assinala_Menu	endp
 ;########################################################################
 
 ;########################################################################
+;ROTINA PARA tranformar strings em decimais NO ECRAN
+StringNumber	proc
+
+		cmp		Helper, '0'
+		je 		zero
+		cmp		Helper, '1'
+		je 		one
+		cmp		Helper, '2'
+		je 		two
+		cmp		Helper, '3'
+		je 		three
+		cmp		Helper, '4'
+		je 		four
+		cmp		Helper, '5'
+		je 		five
+		cmp		Helper, '6'
+		je 		six
+		cmp		Helper, '7'
+		je 		seven
+		cmp		Helper, '8'
+		je 		eigth
+		cmp		Helper, '9'
+		je 		nine
+		jmp 	sai
+
+zero:
+		mov		Helper, 0
+		jmp 	sai
+one:
+		mov		Helper, 1
+		jmp 	sai
+two:
+		mov		Helper, 2
+		jmp 	sai
+three:
+		mov		Helper, 3
+		jmp 	sai
+four:
+		mov		Helper, 4
+		jmp 	sai
+five:
+		mov		Helper, 5
+		jmp 	sai
+six:
+		mov		Helper, 6
+		jmp 	sai
+seven:
+		mov		Helper, 7
+		jmp 	sai
+eigth:
+		mov		Helper, 8
+		jmp 	sai
+nine:
+		mov		Helper, 9
+		jmp 	sai
+		
+sai:
+		ret
+StringNumber	endp
+;########################################################################
+
+;########################################################################
+;ROTINA PARA IMPRIMIR Palavras NO ECRAN
+
+imp_Palavras	proc
+		push	ax
+		push	bx
+		push	cx
+		mov 	Counter, 0
+		mov		POSx, 2
+		mov		PosY, 1
+		;goto_xy	Posx, PosY
+
+;abre tabela
+        mov     ah,3dh
+        mov     al,0
+        lea     dx,FWORDS
+        int     21h   ;Open File Using Handle
+        jc      erro_abrir
+        mov     HandleWord,ax
+        jmp     ler_ciclo
+
+erro_abrir:
+        mov     ah,09h
+        lea     dx,Erro_Open
+        int     21h
+        jmp     sai
+
+ler_ciclo:
+        mov     ah,3fh
+        mov     bx,HandleWord
+        mov     cx,1
+        lea     dx,car_Word
+        int     21h   ;Read From File or Device Using Handle
+		jc		erro_ler
+		cmp		ax,0		;EOF?
+		je		fecha_ficheiro
+		mov		dl,car_Word  ;dl tem o carater da ficha neste momento, cmp's a seguir
+		inc		Counter
+
+		cmp		Counter, 1  
+		je		X
+		cmp		Counter, 3
+		je		Y
+		cmp		Counter, 5
+		je		Direction
+		;cmp	Counter, 7
+		;je		Write
+
+		;mov    ah,02h
+		;int	21h  ;Display Output
+		jmp		ler_ciclo
+	
+X:		
+		mov		Helper, dl
+		call 	StringNumber
+		mov		al, Helper
+		mov		Posx, al
+		jmp		ler_ciclo
+		
+Y:		
+		mov		Helper, dl
+		call 	StringNumber
+		mov		al, Helper
+		mov		Posy, al
+		goto_xy	Posx, Posy
+		jmp		ler_ciclo
+
+Direction:		
+		cmp		dl, 1
+		je		Horizontal
+		cmp		dl, 2
+		je		Vertical
+		cmp		dl, 3
+		je		Diagonal
+
+Horizontal:
+		mov     ah,3fh
+        mov     bx,HandleWord
+        mov     cx,1
+        lea     dx,car_Word
+        int     21h   ;Read From File or Device Using Handle
+		jc		erro_ler
+		cmp		ax,0		;EOF?
+		je		fecha_ficheiro
+		mov		dl,car_Word  ;dl tem o carater da ficha neste momento, cmp's a seguir
+
+		cmp		dl, 3fh
+		je		reset
+		mov     ah,02h
+		int		21h  ;Display Output
+		jmp		Horizontal
+
+Vertical:		
+		mov     ah,3fh
+        mov     bx,HandleWord
+        mov     cx,1
+        lea     dx,car_Word
+        int     21h   ;Read From File or Device Using Handle
+		jc		erro_ler
+		cmp		ax,0		;EOF?
+		je		fecha_ficheiro
+		mov		dl,car_Word  ;dl tem o carater da ficha neste momento, cmp's a seguir
+
+		cmp		dl, 3fh
+		je		reset
+		mov     ah,02h
+		int		21h  ;Display Output
+
+		jmp		Vertical
+
+Diagonal:		
+		mov		Posy, dl
+		goto_xy	Posx, Posy
+		jmp		ler_ciclo
+
+reset:		
+		mov		Counter, 0
+		jmp		ler_ciclo
+
+;Write:		
+		
+
+
+
+erro_ler:
+        mov     ah,09h
+        lea     dx,Erro_Ler_Msg
+        int     21h
+
+fecha_ficheiro:
+        mov     ah,3eh
+        mov     bx,HandleWord
+        int     21h   ;Close File using Handle
+        jnc     sai
+
+        mov     ah,09h
+        lea     dx,Erro_Close
+        Int     21h
+sai:	
+		pop	cx
+		pop	bx
+		pop	ax
+
+		ret
+imp_Palavras	endp
+
+;########################################################################
 ;ROTINA PARA IMPRIMIR letras random NO ECRAN
 
 imp_Letras	proc
@@ -536,6 +748,7 @@ Main    Proc
 		goto_xy	0,0
 		call	imp_Ficheiro
 		call	imp_Letras
+		call	imp_Palavras
 		call 	muda_cor
 		call	assinala_P
 		call 	apaga_ecran
