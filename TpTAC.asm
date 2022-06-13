@@ -722,13 +722,12 @@ imp_Menu	endp
 
 
 Main    Proc
-
         mov     ax,dseg
         mov     ds,ax
-
-			;MAIN PROCEDIMENTO
+		;MAIN PROCEDIMENTO
 		mov		ax,0B800h
 		mov		es,ax
+enterMenu:
 		call 	apaga_ecran
 		goto_xy	0,0
 		call	imp_Menu
@@ -736,15 +735,15 @@ Main    Proc
 		call	assinala_Menu
 		call 	apaga_ecran
 		goto_xy	0,0
+selectFile:
 		call	imp_Ficheiro
 		call	imp_Letras
-		call	imp_Palavras
+		;call	imp_Palavras
 		call 	muda_cor
 		call	assinala_P
+		je enterMenu
 		call 	apaga_ecran
 		goto_xy	0,0
-
-		
         mov     ah,4ch
         int     21h
 Main    endp
