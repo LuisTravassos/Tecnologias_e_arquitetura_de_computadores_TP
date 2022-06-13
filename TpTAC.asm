@@ -1,3 +1,20 @@
+GOTO_XY		MACRO	POSX,POSY
+			MOV	AH,02H
+			MOV	BH,0
+			MOV	DL,POSX
+			MOV	DH,POSY
+			INT	10H
+ENDM
+
+; MOSTRA - Faz o display de uma string terminada em $
+;---------------------------------------------------------------------------
+MOSTRA MACRO STR 
+MOV AH,09H
+LEA DX,STR 
+INT 21H
+ENDM
+; FIM DAS MACROS
+
 .8086
 .model small
 .stack 2048h
@@ -31,13 +48,107 @@ dseg    segment para public 'data'
 		POSx		db	2	; POSx pode ir [1..80]
 		Counter		db	0	; Serve para contar repetições, colocar a zero no inicio de uso	
 		Helper		db	?	; Serve para ajudar a transportar valores, colocar valor nele antes de usar
+
+		;Variaveis para tempo e horas
+		;############################################################################
+
+		STR12	 	DB 		"            "	; String para 12 digitos
+		DDMMAAAA 	db		"                     "
+		Horas		dw		0				; Vai guardar a HORA actual
+		Minutos		dw		0				; Vai guardar os minutos actuais
+		Segundos	dw		0				; Vai guardar os segundos actuais
+		Old_seg		dw		0				; Guarda os últimos segundos que foram lidos
+
+
 dseg    ends
 
 
 cseg    segment para public 'code'
 		assume  cs:cseg, ds:dseg
 
+PILHA	SEGMENT PARA STACK 'STACK'
+		db 2048 dup(?)
+PILHA	ENDS
+
 ;########################################################################
+
+;ROTINA PARA MANIPULAR HORAS E MINUTOS
+
+Ler_TEMPO PROC	
+ 
+		PUSH AX
+		PUSH BX
+		PUSH CX
+		PUSH DX
+	
+		PUSHF
+		
+		MOV AH, 2CH             ; Buscar a hORAS
+		INT 21H                 
+		
+		XOR AX,AX
+		MOV AL, DH              ; segundos para al
+		mov Segundos, AX		; guarda segundos na variavel correspondente
+		
+		XOR AX,AX
+		MOV AL, CL              ; Minutos para al
+		mov Minutos, AX         ; guarda MINUTOS na variavel correspondente
+		
+		XOR AX,AX
+		MOV AL, CH              ; Horas para al
+		mov Horas,AX			; guarda HORAS na variavel correspondente
+ 
+		POPF
+		POP DX
+		POP CX
+		POP BX
+		POP AX
+ 		RET 
+Ler_TEMPO   ENDP 
+
+Trata_Horas PROC
+PUSHF
+		PUSH AX
+		PUSH BX
+		PUSH CX
+		PUSH DX		
+
+		CALL 	Ler_TEMPO				; Horas MINUTOS e segundos do Sistema
+		
+		MOV		AX, Segundos
+		cmp		AX, Old_seg			; VErifica se os segundos mudaram desde a ultima leitura
+		je		fim_horas			; Se a hora não mudou desde a última leitura sai.
+		mov		Old_seg, AX			; Se segundos são diferentes actualiza informação do tempo 
+		
+		mov 	ax,Segundos
+		MOV 	bl, 10     
+		div 	bl
+		add 	al, 30h				; Caracter Correspondente às dezenas
+		add		ah,	30h				; Caracter Correspondente às unidades
+		MOV 	STR12[0],al			; 
+		MOV 	STR12[1],ah
+		MOV 	STR12[2],'s'		
+		MOV 	STR12[3],'$'
+		GOTO_XY	10,13
+		MOSTRA	STR12 		
+        
+		
+						
+fim_horas:		
+		goto_xy	POSx,POSy			; Volta a colocar o cursor onde estava antes de actualizar as horas
+		
+		POPF
+		POP DX		
+		POP CX
+		POP BX
+		POP AX
+		RET		
+			
+Trata_Horas ENDP
+
+
+;########################################################################
+
 ;ROTINA PARA CRIAR NUMERO ALEATORIO
 
 CalcAleat proc near
@@ -125,19 +236,38 @@ muda_cor	endp
 
 ;########################################################################
 ; LE UMA TECLA	
+LE_TECLA_TABELA	PROC
+sem_tecla:
+		call Trata_Horas
+		MOV	AH,0BH
+		INT 21h
+		cmp AL,0
+		je	sem_tecla
+		
+		MOV	AH,08H
+		INT	21H
+		MOV	AH,0
+		CMP	AL,0
+		JNE	SAI_TECLA
+		MOV	AH, 08H
+		INT	21H
+		MOV	AH,1
+SAI_TECLA:	
+		RET
+LE_TECLA_TABELA	ENDP
 
-LE_TECLA	PROC
-
-		mov		ah,08h
-		int		21h   ;Console Input Without Echo
-		mov		ah,0
-		cmp		al,0
-		jne		SAI_TECLA
-		mov		ah, 08h
-		int		21h    ;Console Input Without Echo
-		mov		ah,1
-SAI_TECLA:	RET
-LE_TECLA	endp
+LE_TECLA_MENU PROC
+		MOV	AH,08H
+		INT	21H
+		MOV	AH,0
+		CMP	AL,0
+		JNE	SAI_TECLA
+		MOV	AH, 08H
+		INT	21H
+		MOV	AH,1
+SAI_TECLA:	
+		RET
+LE_TECLA_MENU	ENDP
 ;########################################################################
 
 ;########################################################################
@@ -149,47 +279,31 @@ assinala_P	PROC
 		mov POSy, 1
 
 CICLO:	
-		; goto_xy	POSxa,POSya	; Vai para a posição anterior do cursor
-		; mov		ah, 02h
-		; mov		dl, Car	; Repoe Caracter guardado 
-		; int		21H		
-		
-		goto_xy	POSx,POSy	; Vai para nova posição
 		mov 	ah, 08h
 		mov		bh,0		; numero da página
-		int		10h			;Read Character and Attribute at Cursor Position
+		int		10h			; Read Character and Attribute at Cursor Position
 		mov		Car, al		; Guarda o Caracter que está na posição do Cursor
 		mov		Cor, ah		; Guarda a cor que está na posição do Cursor
 		
 		goto_xy	78,0		; Mostra o caractereque estava na posição do AVATAR
 		mov		ah, 02h		; IMPRIME caracter da posição no canto
 		mov		dl, Car	
-		int		21H			;Display Output
-	
+		int		21H			; Display Output
 		goto_xy	POSx,POSy	; Vai para posição do cursor
-IMPRIME:	
-		; mov		ah, 02h
-		; mov		dl, 190		; Coloca AVATAR
-		; int		21H	
-		; goto_xy	POSx,POSy	; Vai para posição do cursor
-		
-		; mov		al, POSx	; Guarda a posição do cursor	
-		; mov		POSxa, al
-		; mov		al, POSy	; Guarda a posição do cursor
-		; mov 	POSya, al
 		
 LER_SETA:	
-		call 	LE_TECLA
+
+		call 	LE_TECLA_TABELA
 		cmp		ah, 1
 		je		ESTEND
-		
 		CMP 	AL, 27	; ESCAPE
 		JE		FIM
 		CMP		AL, 13
 		je		ASSINALA
 		jmp		LER_SETA
 		
-ESTEND:	cmp 	al,48h
+ESTEND:	
+		cmp 	al,48h
 		jne		BAIXO
 		dec		POSy		;cima
 		cmp 	POSy, 0
@@ -237,14 +351,12 @@ RETURNRIGHT: 						;Não sai por cima do tabuleiro
 		mov POSx, 24
 		jmp CICLO
 
-
-
-				; INT 10,9 - Write Character and Attribute at Cursor Position
-				; AH = 09
-				; AL = ASCII character to write
-				; BH = display page  (or mode 13h, background pixel value)
-				; BL = character attribute (text) foreground color (graphics)
-				; CX = count of characters to write (CX >= 1)
+		; INT 10,9 - Write Character and Attribute at Cursor Position
+		; AH = 09
+		; AL = ASCII character to write
+		; BH = display page  (or mode 13h, background pixel value)
+		; BL = character attribute (text) foreground color (graphics)
+		; CX = count of characters to write (CX >= 1)
 ASSINALA:
 		mov		bl, cor
 		not		bl
@@ -256,6 +368,7 @@ ASSINALA:
 		int		10h  ;Write Character and Attribute at Cursor Position
 		jmp		CICLO
 fim:	
+
 		RET
 assinala_P	endp
 ;########################################################################
@@ -301,7 +414,7 @@ IMPRIME:
 		; mov 	POSya, al
 		
 LER_SETA:	
-		call 	LE_TECLA
+		call 	LE_TECLA_MENU
 		cmp		ah, 1
 		je		ESTEND
 		
@@ -735,13 +848,14 @@ enterMenu:
 		call	assinala_Menu
 		call 	apaga_ecran
 		goto_xy	0,0
-selectFile:
+
 		call	imp_Ficheiro
 		call	imp_Letras
 		;call	imp_Palavras
 		call 	muda_cor
 		call	assinala_P
 		je enterMenu
+		
 		call 	apaga_ecran
 		goto_xy	0,0
         mov     ah,4ch
