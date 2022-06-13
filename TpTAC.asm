@@ -18,6 +18,8 @@ dseg    segment para public 'data'
 		FWORDS         	db      'WORDS.TXT',0  ; Nome do ficheiro a ir buscar / Words.TXT
 		HandleWord      dw      0
         car_Word        db      ?
+		Palavras		db		?
+		Posicoes		db		?
 
 		;Variaveis suporte
 		;##########################################################################
@@ -361,63 +363,32 @@ assinala_Menu	endp
 ;########################################################################
 
 ;########################################################################
-;ROTINA PARA tranformar strings em decimais NO ECRAN
+;ROTINA PARA tranformar strings do ficheiro em decimais NO ECRAN
 StringNumber	proc
 
-		cmp		Helper, '0'
-		je 		zero
-		cmp		Helper, '1'
-		je 		one
-		cmp		Helper, '2'
-		je 		two
-		cmp		Helper, '3'
-		je 		three
-		cmp		Helper, '4'
-		je 		four
-		cmp		Helper, '5'
-		je 		five
-		cmp		Helper, '6'
-		je 		six
-		cmp		Helper, '7'
-		je 		seven
-		cmp		Helper, '8'
-		je 		eigth
-		cmp		Helper, '9'
-		je 		nine
-		jmp 	sai
+		xor		ax, ax
+		sub		dl, 30
+		mov		al, 10
+		mul		dl    ;1 valor decimal guardado em ax
 
-zero:
-		mov		Helper, 0
-		jmp 	sai
-one:
-		mov		Helper, 1
-		jmp 	sai
-two:
-		mov		Helper, 2
-		jmp 	sai
-three:
-		mov		Helper, 3
-		jmp 	sai
-four:
-		mov		Helper, 4
-		jmp 	sai
-five:
-		mov		Helper, 5
-		jmp 	sai
-six:
-		mov		Helper, 6
-		jmp 	sai
-seven:
-		mov		Helper, 7
-		jmp 	sai
-eigth:
-		mov		Helper, 8
-		jmp 	sai
-nine:
-		mov		Helper, 9
-		jmp 	sai
-		
-sai:
+		goto_xy 0,0
+
+		mov    	ah,02h
+		int		21h  ;Display Output
+
+		mov     ah,3fh
+        mov     bx,HandleWord
+        mov     cx,16
+        lea     dx,car_Word	
+		mov		dl,car_Word  ;dl tem o carater da ficha neste momento, cmp's a seguir
+
+		sub		dl, 30
+		add		al, dl
+		adc 	ah, 0  ;2 valor decimal guardado em ax
+
+		mov		Posicoes, al
+		mov		Helper, al
+
 		ret
 StringNumber	endp
 ;########################################################################
@@ -426,9 +397,6 @@ StringNumber	endp
 ;ROTINA PARA IMPRIMIR Palavras NO ECRAN
 
 imp_Palavras	proc
-		push	ax
-		push	bx
-		push	cx
 		mov 	Counter, 0
 		mov		POSx, 2
 		mov		PosY, 1
@@ -463,10 +431,10 @@ ler_ciclo:
 
 		cmp		Counter, 1  
 		je		X
+		cmp		Counter, 2
+		;je		Y
 		cmp		Counter, 3
-		je		Y
-		cmp		Counter, 5
-		je		Direction
+		;je		Direction
 		;cmp	Counter, 7
 		;je		Write
 
@@ -475,14 +443,20 @@ ler_ciclo:
 		jmp		ler_ciclo
 	
 X:		
-		mov		Helper, dl
-		call 	StringNumber
+		;call 	StringNumber
+
+		xor		ax, ax
+		sub		dl, 30
+		mov		al, 10
+		mul		dl    ;1 valor decimal guardado em ax
+
+		goto_xy 0,0
+
 		mov		al, Helper
 		mov		Posx, al
 		jmp		ler_ciclo
 		
 Y:		
-		mov		Helper, dl
 		call 	StringNumber
 		mov		al, Helper
 		mov		Posy, al
@@ -508,10 +482,29 @@ Horizontal:
 		je		fecha_ficheiro
 		mov		dl,car_Word  ;dl tem o carater da ficha neste momento, cmp's a seguir
 
+		xor		bx, bx
+		xor		ax,ax
+		mov		al, Posy
+		mov		dx, 160
+		mul		dx
+		xor		dx, dx
+		mov		dx, ax
+
+		xor		ax, ax
+		mov		al, Posx
+		xor		dx, dx
+		mov		dl, 2
+		mul		dl
+		mov		bx, ax
+		add		bx, dx
+
+
 		cmp		dl, 3fh
 		je		reset
-		mov     ah,02h
-		int		21h  ;Display Output
+		mov		byte ptr es:[bx], dl
+		inc		Posx
+		;mov    ah,02h
+		;int	21h  ;Display Output
 		jmp		Horizontal
 
 Vertical:		
@@ -561,9 +554,6 @@ fecha_ficheiro:
         lea     dx,Erro_Close
         Int     21h
 sai:	
-		pop	cx
-		pop	bx
-		pop	ax
 
 		ret
 imp_Palavras	endp
