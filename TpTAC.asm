@@ -90,14 +90,6 @@ Ler_TEMPO PROC
 		MOV AL, DH              ; segundos para al
 		mov Segundos, AX		; guarda segundos na variavel correspondente
 		
-		XOR AX,AX
-		MOV AL, CL              ; Minutos para al
-		mov Minutos, AX         ; guarda MINUTOS na variavel correspondente
-		
-		XOR AX,AX
-		MOV AL, CH              ; Horas para al
-		mov Horas,AX			; guarda HORAS na variavel correspondente
- 
 		POPF
 		POP DX
 		POP CX
@@ -119,7 +111,7 @@ PUSHF
 		cmp		AX, Old_seg			; VErifica se os segundos mudaram desde a ultima leitura
 		je		fim_horas			; Se a hora não mudou desde a última leitura sai.
 		mov		Old_seg, AX			; Se segundos são diferentes actualiza informação do tempo 
-		
+
 		mov 	ax,Segundos
 		MOV 	bl, 10     
 		div 	bl
@@ -131,9 +123,7 @@ PUSHF
 		MOV 	STR12[3],'$'
 		GOTO_XY	10,13
 		MOSTRA	STR12 		
-        
-		
-						
+        					
 fim_horas:		
 		goto_xy	POSx,POSy			; Volta a colocar o cursor onde estava antes de actualizar as horas
 		
@@ -367,8 +357,8 @@ ASSINALA:
 		mov		cx, 1
 		int		10h  ;Write Character and Attribute at Cursor Position
 		jmp		CICLO
-fim:	
 
+fim:	
 		RET
 assinala_P	endp
 ;########################################################################
