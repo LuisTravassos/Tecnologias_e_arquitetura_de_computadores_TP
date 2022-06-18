@@ -1,19 +1,24 @@
-GOTO_XY		MACRO	POSX,POSY
-			MOV	AH,02H
-			MOV	BH,0
-			MOV	DL,POSX
-			MOV	DH,POSY
-			INT	10H
+;########################################################################
+;ROTINA PARA COLOCAR CURSOR NA POSIÇÂO PRETENDIDA1
+
+goto_xy	macro		POSx,POSy
+		mov		ah,02h
+		mov		bh,0		; numero da página
+		mov		dl,POSx
+		mov		dh,POSy
+		int		10h   ; Set Cursor Position
+endm
+
+;########################################################################
+;MOSTRA - Faz o display de uma string terminada em $
+
+MOSTRA MACRO STR 
+	MOV AH,09H
+	LEA DX,STR 
+	INT 21H
 ENDM
 
-; MOSTRA - Faz o display de uma string terminada em $
-;---------------------------------------------------------------------------
-MOSTRA MACRO STR 
-MOV AH,09H
-LEA DX,STR 
-INT 21H
-ENDM
-; FIM DAS MACROS
+;########################################################################
 
 .8086
 .model small
@@ -42,12 +47,13 @@ dseg    segment para public 'data'
 		;##########################################################################
 
 		ultimo_num_aleat dw 0 		;ultimo numero aleatorio / numero aleatório
-		Car			db	32	; Guarda um caracter do Ecran 
+		Car1			db	32	; Guarda um caracter do Ecran 
+		Car2			db	32	; Guarda um caracter do Ecran 
 		Cor			db	11	; Guarda os atributos de cor do caracter / BIOS color attributes
 		POSy		db	1	; a linha pode ir de [1 .. 25]
 		POSx		db	2	; POSx pode ir [1..80]
 		Counter		db	0	; Serve para contar repetições, colocar a zero no inicio de uso	
-		Helper		db	?	; Serve para ajudar a transportar valores, colocar valor nele antes de usar
+		Helper		dw	?	; Serve para ajudar a transportar valores, colocar valor nele antes de usar
 
 		;Variaveis para tempo e horas
 		;############################################################################
@@ -112,7 +118,6 @@ PUSHF
 		je		fim_horas			; Se a hora não mudou desde a última leitura sai.
 		mov		Old_seg, AX			; Se segundos são diferentes actualiza informação do tempo 
 
-		mov 	ax,Segundos
 		MOV 	bl, 10     
 		div 	bl
 		add 	al, 30h				; Caracter Correspondente às dezenas
@@ -121,7 +126,7 @@ PUSHF
 		MOV 	STR12[1],ah
 		MOV 	STR12[2],'s'		
 		MOV 	STR12[3],'$'
-		GOTO_XY	10,13
+		goto_xy	10,13
 		MOSTRA	STR12 		
         					
 fim_horas:		
@@ -175,17 +180,6 @@ CalcAleat proc near
 	pop	bp
 	ret
 CalcAleat endp
-
-;########################################################################
-;ROTINA PARA COLOCAR CURSOR NA POSIÇÂO PRETENDIDA
-
-goto_xy	macro		POSx,POSy
-		mov		ah,02h
-		mov		bh,0		; numero da página
-		mov		dl,POSx
-		mov		dh,POSy
-		int		10h   ; Set Cursor Position
-endm
 
 ;########################################################################
 ;ROTINA PARA APAGAR ECRAN
@@ -264,6 +258,15 @@ LE_TECLA_MENU	ENDP
 ; Assinala caracter na tabela no ecran	
 
 assinala_P	PROC
+		push ax
+		push bx
+		push cx
+		push dx
+
+		xor ax, ax
+		xor bx, bx
+		xor cx, cx
+		xor dx, dx
 
 		mov POSx, 2
 		mov POSy, 1
@@ -272,12 +275,12 @@ CICLO:
 		mov 	ah, 08h
 		mov		bh,0		; numero da página
 		int		10h			; Read Character and Attribute at Cursor Position
-		mov		Car, al		; Guarda o Caracter que está na posição do Cursor
+		;mov		Car1, al	; Guarda o Caracter que está na posição do Cursor
 		mov		Cor, ah		; Guarda a cor que está na posição do Cursor
 		
 		goto_xy	78,0		; Mostra o caractereque estava na posição do AVATAR
 		mov		ah, 02h		; IMPRIME caracter da posição no canto
-		mov		dl, Car	
+		mov		dl, Car1	
 		int		21H			; Display Output
 		goto_xy	POSx,POSy	; Vai para posição do cursor
 		
@@ -348,17 +351,28 @@ RETURNRIGHT: 						;Não sai por cima do tabuleiro
 		; BL = character attribute (text) foreground color (graphics)
 		; CX = count of characters to write (CX >= 1)
 ASSINALA:
+		mov 	ah, 08h
+		mov		bh,0		; numero da página
+		int		10h			; Read Character and Attribute at Cursor Position
+		mov		Car1, al		; Guarda o Caracter que está na posição do Cursor
+		mov		Cor, ah		; Guarda a cor que está na posição do Cursor
+
+
 		mov		bl, cor
 		not		bl
 		mov		cor, bl
 		mov 	ah, 09h
-		mov		al, car
+		mov		al, Car1
 		mov		bh, 0
 		mov		cx, 1
 		int		10h  ;Write Character and Attribute at Cursor Position
 		jmp		CICLO
 
 fim:	
+		pop 	dx
+		pop cx
+		pop bx
+		pop ax
 		RET
 assinala_P	endp
 ;########################################################################
@@ -383,7 +397,7 @@ CICLO:
 		mov 	ah, 08h
 		mov		bh,0		; numero da página
 		int		10h			; Read Character and Attribute at Cursor Position
-		mov		Car, al		; Guarda o Caracter que está na posição do Cursor
+		mov		Car2, al		; Guarda o Caracter que está na posição do Cursor
 		mov		Cor, ah		; Guarda a cor que está na posição do Cursor
 		
 		;goto_xy	78,0		; Mostra o caractereque estava na posição do AVATAR
@@ -466,44 +480,16 @@ assinala_Menu	endp
 ;########################################################################
 
 ;########################################################################
-;ROTINA PARA tranformar strings do ficheiro em decimais NO ECRAN
-StringNumber	proc
-
-		xor		ax, ax
-		sub		dl, 30
-		mov		al, 10
-		mul		dl    ;1 valor decimal guardado em ax
-
-		goto_xy 0,0
-
-		mov    	ah,02h
-		int		21h  ;Display Output
-
-		mov     ah,3fh
-        mov     bx,HandleWord
-        mov     cx,16
-        lea     dx,car_Word	
-		mov		dl,car_Word  ;dl tem o carater da ficha neste momento, cmp's a seguir
-
-		sub		dl, 30
-		add		al, dl
-		adc 	ah, 0  ;2 valor decimal guardado em ax
-
-		mov		Posicoes, al
-		mov		Helper, al
-
-		ret
-StringNumber	endp
-;########################################################################
-
-;########################################################################
 ;ROTINA PARA IMPRIMIR Palavras NO ECRAN
 
 imp_Palavras	proc
-		mov 	Counter, 0
-		mov		POSx, 2
-		mov		PosY, 1
-		;goto_xy	Posx, PosY
+
+		push	ax
+		push	bx
+		push	cx
+		push	dx
+		mov Counter, 0
+		mov Helper, 0
 
 ;abre tabela
         mov     ah,3dh
@@ -521,6 +507,11 @@ erro_abrir:
         jmp     sai
 
 ler_ciclo:
+		xor 	ax, ax
+		xor		bx, bx
+		xor		dx, dx
+		xor 	cx, cx
+
         mov     ah,3fh
         mov     bx,HandleWord
         mov     cx,1
@@ -529,88 +520,180 @@ ler_ciclo:
 		jc		erro_ler
 		cmp		ax,0		;EOF?
 		je		fecha_ficheiro
-		mov		dl,car_Word  ;dl tem o carater da ficha neste momento, cmp's a seguir
-		inc		Counter
+		mov		dl, car_Word
 
-		cmp		Counter, 1  
-		je		X
+		cmp		Counter, 0
+		je		PrimeiroX
+		cmp		Counter, 1
+		je		SegundoX
+
 		cmp		Counter, 2
-		;je		Y
+		je		PrimeiroY
 		cmp		Counter, 3
-		;je		Direction
-		;cmp	Counter, 7
-		;je		Write
+		je		SegundoY
+		cmp		Counter, 4
+		je		Contas
+		cmp		Counter, 5
+		je 		Direction
 
-		;mov    ah,02h
-		;int	21h  ;Display Output
-		jmp		ler_ciclo
-	
-X:		
-		;call 	StringNumber
+		
 
-		xor		ax, ax
-		sub		dl, 30
+PrimeiroX:
+		xor 	ax,ax
+		sub		dl, 30h
 		mov		al, 10
-		mul		dl    ;1 valor decimal guardado em ax
+		mul		dl			;AX tem o primeiro valor
 
-		goto_xy 0,0
+		inc 	Counter
+		mov		Helper, ax
+		jmp 	ler_ciclo
 
-		mov		al, Helper
+SegundoX:
+		mov		ax, Helper
+		sub		dl, 30h
+		add		al, dl			
+		adc		ah, 0         ;AX tem o valor total
+
+		inc 	Counter
 		mov		Posx, al
-		jmp		ler_ciclo
-		
-Y:		
-		call 	StringNumber
-		mov		al, Helper
+		jmp 	ler_ciclo
+
+PrimeiroY:
+		xor 	ax,ax
+		sub		dl, 30h
+		mov		al, 10
+		mul		dl			;AX tem o primeiro valor
+
+		inc 	Counter
+		mov		Helper, ax
+		jmp 	ler_ciclo
+
+SegundoY:
+		mov		ax, Helper
+		sub		dl, 30h
+		add		al, dl			
+		adc		ah, 0         ;AX tem o valor total
+
+		inc 	Counter
 		mov		Posy, al
-		goto_xy	Posx, Posy
-		jmp		ler_ciclo
+		jmp 	ler_ciclo
 
-Direction:		
-		cmp		dl, 1
-		je		Horizontal
-		cmp		dl, 2
-		je		Vertical
-		cmp		dl, 3
-		je		Diagonal
+Contas:
+		;Contas
 
-Horizontal:
-		mov     ah,3fh
-        mov     bx,HandleWord
-        mov     cx,1
-        lea     dx,car_Word
-        int     21h   ;Read From File or Device Using Handle
-		jc		erro_ler
-		cmp		ax,0		;EOF?
-		je		fecha_ficheiro
-		mov		dl,car_Word  ;dl tem o carater da ficha neste momento, cmp's a seguir
+		xor 	ax, ax
+		xor 	bx, bx
 
-		xor		bx, bx
-		xor		ax,ax
-		mov		al, Posy
-		mov		dx, 160
-		mul		dx
-		xor		dx, dx
-		mov		dx, ax
+		mov 	al, Posy
+		mov 	bx, 160
+		mul 	bx		;ax tem o valor de Py
 
-		xor		ax, ax
-		mov		al, Posx
-		xor		dx, dx
-		mov		dl, 2
-		mul		dl
 		mov		bx, ax
-		add		bx, dx
 
+		xor 	ax, ax
+		mov		al, 2
+		mul		Posx      ;ax tem o valor de Px
 
-		cmp		dl, 3fh
+		add 	ax, bx
+		mov		Helper, ax
+
+		inc 	Counter
+		jmp 	ler_ciclo
+
+Direction:
+		cmp		dl, 31h
+		je		horizontal
+		cmp		dl, 32h
+		je		vertical
+		cmp		dl, 33h
+		je		diagonal
+
+horizontal:
+		xor 	ax, ax
+		xor		bx, bx
+		xor		dx, dx
+		xor 	cx, cx
+
+        mov     ah,3fh
+        mov     bx,HandleWord
+        mov     cx,1
+        lea     dx,car_Word
+        int     21h   ;Read From File or Device Using Handle
+		jc		erro_ler
+		cmp		ax,0		;EOF?
+		je		fecha_ficheiro
+		mov		dl, car_Word
+
+		cmp		dl, 24h
 		je		reset
-		mov		byte ptr es:[bx], dl
-		inc		Posx
-		;mov    ah,02h
-		;int	21h  ;Display Output
-		jmp		Horizontal
 
-Vertical:		
+		mov 	bx, Helper
+		mov		byte ptr es:[bx], dl
+		inc		Helper
+		inc		Helper
+		inc		Helper
+		inc		Helper
+
+		jmp		horizontal
+
+vertical:
+		xor 	ax, ax
+		xor		bx, bx
+		xor		dx, dx
+		xor 	cx, cx
+
+        mov     ah,3fh
+        mov     bx,HandleWord
+        mov     cx,1
+        lea     dx,car_Word
+        int     21h   ;Read From File or Device Using Handle
+		jc		erro_ler
+		cmp		ax,0		;EOF?
+		je		fecha_ficheiro
+		mov		dl, car_Word
+
+		cmp		dl, 24h
+		je		reset
+
+		mov 	bx, Helper
+		mov		byte ptr es:[bx], dl
+
+		mov		ax, 160
+		add		Helper, ax
+
+		jmp		vertical
+
+diagonal:
+		xor 	ax, ax
+		xor		bx, bx
+		xor		dx, dx
+		xor 	cx, cx
+
+        mov     ah,3fh
+        mov     bx,HandleWord
+        mov     cx,1
+        lea     dx,car_Word
+        int     21h   ;Read From File or Device Using Handle
+		jc		erro_ler
+		cmp		ax,0		;EOF?
+		je		fecha_ficheiro
+		mov		dl, car_Word
+
+		cmp		dl, 24h
+		je		reset
+
+		mov 	bx, Helper
+		mov		byte ptr es:[bx], dl
+
+		mov		ax, 164
+		add		Helper, ax
+
+		jmp		diagonal
+
+reset:
+		mov		Counter, 0
+		mov		Helper, 0
+
 		mov     ah,3fh
         mov     bx,HandleWord
         mov     cx,1
@@ -619,28 +702,9 @@ Vertical:
 		jc		erro_ler
 		cmp		ax,0		;EOF?
 		je		fecha_ficheiro
-		mov		dl,car_Word  ;dl tem o carater da ficha neste momento, cmp's a seguir
+		mov		dl, car_Word
 
-		cmp		dl, 3fh
-		je		reset
-		mov     ah,02h
-		int		21h  ;Display Output
-
-		jmp		Vertical
-
-Diagonal:		
-		mov		Posy, dl
-		goto_xy	Posx, Posy
 		jmp		ler_ciclo
-
-reset:		
-		mov		Counter, 0
-		jmp		ler_ciclo
-
-;Write:		
-		
-
-
 
 erro_ler:
         mov     ah,09h
@@ -656,16 +720,25 @@ fecha_ficheiro:
         mov     ah,09h
         lea     dx,Erro_Close
         Int     21h
-sai:	
 
+sai:	
+		pop 	dx
+		pop 	cx
+		pop 	bx
+		pop 	ax
 		ret
 imp_Palavras	endp
+
 
 ;########################################################################
 ;ROTINA PARA IMPRIMIR letras random NO ECRAN
 
 imp_Letras	proc
 
+		push	ax
+		push	bx
+		push	cx
+		push	dx
 		mov POSx, 2
 		mov POSy, 1
 		mov Counter, 0
@@ -701,11 +774,12 @@ IncPy:
 		inc 	POSY
 		jmp		ler_ciclo
 
-Random:
-		call 	CalcAleat
-		jmp		ler_ciclo
 
 sai:
+		pop 	dx
+		pop 	cx
+		pop 	bx
+		pop 	ax
 		ret
 imp_Letras	endp
 
@@ -841,10 +915,10 @@ enterMenu:
 
 		call	imp_Ficheiro
 		call	imp_Letras
-		;call	imp_Palavras
+		call	imp_Palavras
 		call 	muda_cor
 		call	assinala_P
-		je enterMenu
+		;jmp 	enterMenu
 		
 		call 	apaga_ecran
 		goto_xy	0,0
