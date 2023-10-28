@@ -1,31 +1,31 @@
-Jogo da Sopa de Letras em Assembly 8086
+Word Search Game in Assembly 8086
 
-Este projeto foi desenvolvido como parte da unidade curricular "Tecnologias e Arquitetura de Computadores". Ao longo do semestre, utilizamos a linguagem Assembly 8086 e os recursos disponíveis para criar uma versão do jogo da sopa de letras. Nesta versão, o usuário pode jogar diretamente no ambiente DOSBox, utilizando algumas teclas do teclado.
-Objetivo
+This project was developed as part of the course "Computer Technologies and Architecture". Throughout the semester, we used Assembly 8086 language and available resources to create a version of the word search game. In this version, the user can play directly in the DOSBox environment using some keys on the keyboard.
+Objective
 
-O objetivo principal deste projeto foi aprimorar nossas habilidades de programação em Assembly 8086 e aprofundar nosso entendimento sobre operações de baixo nível, muito próximas do hardware. O desenvolvimento dessa versão do jogo da sopa de letras proporcionou uma oportunidade única de trabalhar em um nível próximo à máquina, promovendo um entendimento mais profundo da arquitetura de computadores.
-Funcionalidades
+The main objective of this project was to enhance our programming skills in Assembly 8086 and deepen our understanding of low-level operations, very close to the hardware. Developing this version of the word search game provided a unique opportunity to work at a machine-level, promoting a deeper understanding of computer architecture.
+Features
 
-    Implementação do jogo da sopa de letras em Assembly 8086.
-    Integração com o ambiente DOSBox para execução direta.
-    Utilização de teclas do teclado para interação do usuário.
+    Implementation of the word search game in Assembly 8086.
+    Integration with the DOSBox environment for direct execution.
+    Use of keyboard keys for user interaction.
 
-Estrutura do Projeto
+Project Structure
 
-    /src: Contém o código-fonte Assembly 8086.
-    /docs: Documentação adicional (se houver).
-    /screenshots: Capturas de tela do jogo em execução.
-    /bin: Arquivos executáveis.
+    /src: Contains the Assembly 8086 source code.
+    /docs: Additional documentation (if any).
+    /screenshots: Screenshots of the game in action.
+    /bin: Executable files.
 
-Como Executar
+How to Run
 
-    Faça o clone deste repositório.
-    Abra o ambiente DOSBox em seu sistema.
-    Carregue e execute o programa usando as instruções específicas do Assembly 8086.
+    Clone this repository.
+    Open the DOSBox environment on your system.
+    Load and execute the program using specific Assembly 8086 instructions.
 
-Contribuições
+Contributions
 
-Contribuições são bem-vindas! Se você encontrar bugs, melhorias ou deseja adicionar novos recursos, sinta-se à vontade para abrir uma issue ou criar um pull request.
-Licença
+Contributions are welcome! If you come across bugs, have suggestions for improvements, or wish to add new features, feel free to open an issue or create a pull request.
+License
 
-Este projeto está sob a licença MIT.
+This project is under the MIT License.
